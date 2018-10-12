@@ -1,9 +1,8 @@
 
 ## ga-server
-<center>
 Github Analytics server </br>
 Xavier Afonso & Joël Kaufmann </br>
-Based on [express-server-skeleton](https://github.com/heig-vd-tweb/express-server-skeleton.git) [HEIG-VD TWEB](https://github.com/heig-vd-tweb) by [Paul Nta](https://github.com/paulnta), [edri](https://github.com/edri)</center>
+Based on [express-server-skeleton](https://github.com/heig-vd-tweb/express-server-skeleton.git) [HEIG-VD TWEB](https://github.com/heig-vd-tweb) by [Paul Nta](https://github.com/paulnta), [edri](https://github.com/edri)
 
 ## Running the app
 
