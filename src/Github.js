@@ -52,14 +52,22 @@ class Github {
   }
 
   repoContributors(repoFullName){
-    return this.request(`/repos/${repoFullName}/contributors`);
+    return this.request(`/repos/${repoFullName}/contributors`).catch(error => {
+
+        //Si github retourne pas un json
+        return [];
+    });
   }
 
   reposContributors(username){
 
     return this.repos(username)
       .then((repos) => {
-        const getContributors = repo => this.repoContributors(repo.full_name);
+        const getContributors = repo => {
+
+          return this.repoContributors(repo.full_name)
+        }
+
         return Promise.all(repos.map(getContributors));
       });
   }

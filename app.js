@@ -19,10 +19,30 @@ app.get('/users/:username', (req, res, next) => { // eslint-disable-line no-unus
 });
 
 app.get('/contributors/:username', (req, res, next) => { // eslint-disable-line no-unused-vars
-  client.reposContributors(req.params.username)
+ 
+  /*let bigdata = [];
+  let currentUsername
+
+  if(bigdata.length == 0){
+
+    currentUsername = req.params.username
+  }
+  else{
+    currentUsername = "josef";
+  }
+
+  
+
+  client.reposContributors()
+  .then(utils.getContributors)
+  .then(data => bigdata.push(data))*/
+
+	client.reposContributors(req.params.username)
     .then(utils.getContributors)
     .then(data => res.send(data))
     .catch(next);
+
+
 });
 
 app.get('/test', (req, res, next) => { // eslint-disable-line no-unused-vars
