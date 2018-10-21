@@ -24,51 +24,52 @@ function getReposId(reposid = []){
 
 }
 
-function getContributors(contributors = []){
+function getContributors(contributors = [], root){
 
-  const clean = {};
+  const data = {};
+  const newContributors = []
+  cpt = 0;
 
   contributors.forEach(function(item){
   
     item.forEach(function(element){
-  
-        let contri = {};
-        //collabo.id = element.login;
-        contri.login = element.login;
-        contri.avatar_url = element.avatar_url;
 
-        clean[element.id] = contri;
+      //Si c'est le root
+      if(root ==element.login){
 
-        //clean.push(collabo);
-    
-    });
+        const root  = {};
 
+        root.id = element.id;
+        root.login = element.login;
+        root.avatar_url = element.avatar_url;
+
+        data["root"] = root;
+      }
+
+      //C'est un contributeur
+      else
+      {
+
+        // Temporaire, pour garder seulement 4 contributeurs
+        if(cpt<4){
+        
+        let contributor = {};
+
+        contributor.id = element.id;
+        contributor.login = element.login;
+        contributor.avatar_url = element.avatar_url;
+
+        newContributors.push(contributor);
+        cpt++;
+      }
+    }
+  });
   });
 
-  return clean;
+  data["contributors"] = newContributors;
 
-
-   /*
-   
-   Pour un repos
-   
-   for(let k in collaraborators) {
-
-      for(let y in k){
-      let currentCollaraborator = {}
-
-      currentCollaraborator.login = collaraborators[y].login;
-      currentCollaraborator.id = collaraborators[y].id;
-      currentCollaraborator.avatar_url = collaraborators[y].avatar_url;
-
-      clean.push(currentCollaraborator);
-      }
-  } 
-
-  return clean;*/
-  
+  return data;
 }
-
 
 
 module.exports = {
