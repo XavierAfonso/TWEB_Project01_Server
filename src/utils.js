@@ -1,3 +1,17 @@
+const Github = require('./Github');
+const client = new Github({ token: process.env.OAUTH_TOKEN });
+
+
+function isEmptyObject(obj) {
+  var name;
+  for (name in obj) {
+      if (obj.hasOwnProperty(name)) {
+          return false;
+      }
+  }
+  return true;
+}
+
 function getReposLanguagesStats(reposLanguages = []) {
   const stats = {};
   const countLanguages = o => {
@@ -24,8 +38,9 @@ function getReposId(reposid = []){
 
 }
 
-function getContributors(contributors = [], root){
+function getContributors(contributors = [], rootUsername){
 
+  const root  = {};
   const data = {};
   const newContributors = []
   cpt = 0;
@@ -35,15 +50,11 @@ function getContributors(contributors = [], root){
     item.forEach(function(element){
 
       //Si c'est le root
-      if(root ==element.login){
-
-        const root  = {};
+      if(rootUsername==element.login){
 
         root.id = element.id;
         root.login = element.login;
         root.avatar_url = element.avatar_url;
-
-        data["root"] = root;
       }
 
       //C'est un contributeur
@@ -66,6 +77,20 @@ function getContributors(contributors = [], root){
   });
   });
 
+
+  //Si le root n'a pas été trouvé
+  if(isEmptyObject(root)){
+
+    let tmp = client.user(rootUsername);
+    tmp.then(data => {
+      
+      root.id = data.id;
+      root.login = data.login;
+      root.avatar_url = data.avatar_url;
+    });
+  }
+
+  data["root"] = root;
   data["contributors"] = newContributors;
 
   return data;
