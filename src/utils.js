@@ -2,6 +2,7 @@ const Github = require('./Github');
 const client = new Github({ token: process.env.OAUTH_TOKEN });
 
 
+//Check if the object is empty
 function isEmptyObject(obj) {
   var name;
   for (name in obj) {
@@ -25,7 +26,7 @@ function getReposLanguagesStats(reposLanguages = []) {
   return stats;
 }
 
-//Récupère ids des repos
+//Get the repods Id
 function getReposId(reposid = []){
 
   const stats = [];
@@ -43,13 +44,16 @@ function getContributors(contributors = [], rootUsername){
   const root  = {};
   const data = {};
   const newContributors = []
+  const idsNewContributors = [];
+
   cpt = 0;
+  const limit = 5; //Limit of contributors
 
   contributors.forEach(function(item){
   
     item.forEach(function(element){
 
-      //Si c'est le root
+      //If it's the root
       if(rootUsername==element.login){
 
         root.id = element.id;
@@ -57,28 +61,34 @@ function getContributors(contributors = [], rootUsername){
         root.avatar_url = element.avatar_url;
       }
 
-      //C'est un contributeur
+      //If it's a contributor
       else
       {
 
-        // Temporaire, pour garder seulement 4 contributeurs
-        if(cpt<4){
+        //temporary
+        if(cpt<limit){
         
         let contributor = {};
 
         contributor.id = element.id;
+
+        //If the contributor don't exist yet
+        if(!idsNewContributors.includes(contributor.id)){
+
+        idsNewContributors.push(contributor.id);
         contributor.login = element.login;
         contributor.avatar_url = element.avatar_url;
-
         newContributors.push(contributor);
+
         cpt++;
+
+        }
       }
     }
   });
   });
 
-
-  //Si le root n'a pas été trouvé
+  //if the root was not find.
   if(isEmptyObject(root)){
 
     let tmp = client.user(rootUsername);
@@ -101,4 +111,5 @@ module.exports = {
   getReposLanguagesStats,
   getReposId,
   getContributors,
+  
 };
