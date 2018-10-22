@@ -10,11 +10,10 @@ const port = process.env.PORT || 3000;
 const client = new Github({ token: process.env.OAUTH_TOKEN });
 
 
-function getContributors(username){
+function getContributors(username) {
   return client.reposContributors(username)
-  .then(data => utils.getContributors(data,username))
+    .then(data => utils.getContributors(data, username));
 }
-
 
 // Enable CORS for the client app
 app.use(cors());
@@ -26,35 +25,23 @@ app.get('/users/:username', (req, res, next) => { // eslint-disable-line no-unus
 });
 
 app.get('/contributors/:username', (req, res, next) => { // eslint-disable-line no-unused-vars
- 
-  let bigdata = [];
-  
-  //Root
-  getContributors(req.params.username).then(data=>{
-   
+  const bigdata = [];
+
+  // Root
+  getContributors(req.params.username).then((data) => {
     bigdata.push(data);
-    
-    let rootContributors = bigdata[0]["contributors"];
-    let nameContributorsOfRoot = rootContributors.map(rootContributors => rootContributors.login);
 
-    //Contributors
-    return Promise.all((nameContributorsOfRoot).map(getContributors)).then(data =>{
+    const rootContributors = bigdata[0].contributors;
+    const nameContributorsOfRoot = rootContributors.map(contributors => contributors.login);
 
-      data.forEach(function(item){
+    // Contributors
+    return Promise.all((nameContributorsOfRoot).map(getContributors)).then((element) => {
+      element.forEach((item) => {
         bigdata.push(item);
       });
     });
-
-  }).then(value => res.send(bigdata)).catch(next);
-
+  }).then(() => res.send(bigdata)).catch(next);
 });
-
-app.get('/test', (req, res, next) => { // eslint-disable-line no-unused-vars
-  client.repoContributors("jonrohan/empty")
-    .then(data => res.send(data))
-    .catch(next);
-});
-
 
 app.get('/repos/:username', (req, res, next) => { // eslint-disable-line no-unused-vars
   client.repos(req.params.username)

@@ -1,10 +1,11 @@
 const Github = require('./Github');
+
 const client = new Github({ token: process.env.OAUTH_TOKEN });
 
 
-//Check if the object is empty
+// Check if the object is empty
 function isEmptyObject(obj) {
-  var name;
+  let name;
   for (name in obj) {
       if (obj.hasOwnProperty(name)) {
           return false;

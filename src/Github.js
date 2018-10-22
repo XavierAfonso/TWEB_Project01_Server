@@ -51,23 +51,15 @@ class Github {
     return this.request(`/repos/${repoName}/languages`);
   }
 
-  repoContributors(repoFullName){
-    return this.request(`/repos/${repoFullName}/contributors`).catch(error => {
-
-        //Si github retourne pas un json
-        return [];
-    });
+  repoContributors(repoFullName) {
+    return this.request(`/repos/${repoFullName}/contributors`)
+      .catch(() => []); // If is not a json
   }
 
-  reposContributors(username){
-
+  reposContributors(username) {
     return this.repos(username)
       .then((repos) => {
-        const getContributors = repo => {
-
-          return this.repoContributors(repo.full_name)
-        }
-
+        const getContributors = repo => this.repoContributors(repo.full_name);
         return Promise.all(repos.map(getContributors));
       });
   }
