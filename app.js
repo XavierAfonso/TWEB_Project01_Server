@@ -55,7 +55,7 @@ function getContributorsFromGithub(username,update) {
 
   else{
 
-    Database.collection.findOneAndUpdate({ _id: username }, { $set: { response: stringPayload }}).then(result => console.log(result));
+    Database.collection.findOneAndUpdate({ _id: username }, { $set: { response: stringPayload , updatedAt: new Date()}}).then(result => console.log(result));
   }
 
 
