@@ -11,6 +11,7 @@ const Database = require('./src/model');
 const app = express();
 const port = process.env.PORT || 3000;
 const client = new Github({ token: process.env.OAUTH_TOKEN });
+const delayCache = 1; // 1 hour
 
 mongoose.connect(`mongodb://tweb:${process.env.MONGO_PASSWORD}@cluster0-shard-00-00-tfzh9.mongodb.net:27017,cluster0-shard-00-01-tfzh9.mongodb.net:27017,cluster0-shard-00-02-tfzh9.mongodb.net:27017/test?ssl=true&replicaSet=Cluster0-shard-0&authSource=admin&retryWrites=true`, { useNewUrlParser: true });
 
@@ -19,7 +20,7 @@ function getContributors(username) {
     .then(data => utils.getContributors(data, username));
 }
 
-function getContributorsFromGithub(username) {
+function getContributorsFromGithub(username,update) {
 
   const payload = [];
   let stringPayload = '';
@@ -38,13 +39,26 @@ function getContributorsFromGithub(username) {
       });
     });
   }).then(() => {
+
+
     stringPayload = JSON.stringify(payload);
-    const document = new Database({ request: username, response: stringPayload });
+
+    if(!update){
+
+    const document = new Database({ _id: username, response: stringPayload });
     document.save().then((result) => {
       console.log(result);
     }).catch((error) => {
       console.log(error);
     });
+  }
+
+  else{
+
+    Database.collection.findOneAndUpdate({ _id: username }, { $set: { response: stringPayload }}).then(result => console.log(result));
+  }
+
+
 
     return payload;
     //res.send(payload);
@@ -64,31 +78,34 @@ app.get('/contributors/:username', (req, res, next) => { // eslint-disable-line 
   
   const username = req.params.username;
   console.log(req.params.username);
+
   // Check the database
-  Database.findOne({ request: username }).then((data) => {
+  Database.findById({_id: username}).then((data) => {
    
     // If the payload already exist on the database
     if (data) {
-      res.send(data.response);
+
+        let updatedAt = data.updatedAt;
+        let now = new Date();
+        let hourDifference = Math.abs(updatedAt - now) / 36e5;
+
+        if(hourDifference > delayCache){
+            getContributorsFromGithub(username,true).then(payload => res.send(payload))
+             .catch(error => console.log(error));
+        }
+
+        else{
+          res.send(data.response);
+        }
     }
 
     //The payload don't exit
     else{
-
-      console.log(data);
-      getContributorsFromGithub(username).then(payload => {
-        
-        console.log(payload);
-        res.send(payload)}
-      );
+      getContributorsFromGithub(username,false).then(payload => res.send(payload))
+      .catch(error => console.log(error));
     }
-
-  //Maybe the database is not reachable
-  }).catch((err) => {
-    
-    console.log(err);
-    getContributorsFromGithub(username).then(payload => res.send(payload));
-  });
+ 
+  }).catch(error => console.log(error));
 
 });
 
