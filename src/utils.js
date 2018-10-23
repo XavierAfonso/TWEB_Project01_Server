@@ -40,6 +40,7 @@ function getReposId(reposid = []){
 
 }
 
+// Formats 'contributors' into a JSON of the contributors of all repos of the 'rootUsername'
 function getContributors(contributors = [], rootUsername){
 
   const root  = {};
@@ -61,13 +62,11 @@ function getContributors(contributors = [], rootUsername){
         root.login = element.login;
         root.avatar_url = element.avatar_url;
       }
-
       //If it's a contributor
       else
       {
 
-        //temporary
-        if(cpt<limit){
+        if(cpt<limit){ //TODO remove
         
         let contributor = {};
 
@@ -76,20 +75,19 @@ function getContributors(contributors = [], rootUsername){
         //If the contributor don't exist yet
         if(!idsNewContributors.includes(contributor.id)){
 
-        idsNewContributors.push(contributor.id);
-        contributor.login = element.login;
-        contributor.avatar_url = element.avatar_url;
-        newContributors.push(contributor);
+          idsNewContributors.push(contributor.id);
+          contributor.login = element.login;
+          contributor.avatar_url = element.avatar_url;
+          newContributors.push(contributor);
 
-        cpt++;
-
+          cpt++;
         }
+        }//TODO remove
       }
-    }
-  });
+    });
   });
 
-  //if the root was not find.
+  //if the root was not found
   if(isEmptyObject(root)){
 
     let tmp = client.user(rootUsername);

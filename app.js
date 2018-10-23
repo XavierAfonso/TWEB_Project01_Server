@@ -13,7 +13,11 @@ const port = process.env.PORT || 3000;
 const client = new Github({ token: process.env.OAUTH_TOKEN });
 const delayCache = 1; // 1 hour
 
+// DB connection
 mongoose.connect(`mongodb://tweb:${process.env.MONGO_PASSWORD}@cluster0-shard-00-00-tfzh9.mongodb.net:27017,cluster0-shard-00-01-tfzh9.mongodb.net:27017,cluster0-shard-00-02-tfzh9.mongodb.net:27017/test?ssl=true&replicaSet=Cluster0-shard-0&authSource=admin&retryWrites=true`, { useNewUrlParser: true });
+
+// Enable CORS for the client app
+app.use(cors());
 
 function getContributors(username) {
   return client.reposContributors(username)
@@ -65,24 +69,23 @@ function getContributorsFromGithub(username,update) {
   });
 }
 
-// Enable CORS for the client app
-app.use(cors());
-
+// Provides JSON of user 'username'
 app.get('/users/:username', (req, res, next) => { // eslint-disable-line no-unused-vars
   client.user(req.params.username)
     .then(user => res.send(user))
     .catch(next);
 });
 
+// Provides JSON of all co-contributors in all the user's repos
 app.get('/contributors/:username', (req, res, next) => { // eslint-disable-line no-unused-vars
   
   const username = req.params.username;
   console.log(req.params.username);
 
-  // Check the database
+  // Check in the database
   Database.findById({_id: username}).then((data) => {
    
-    // If the payload already exist on the database
+    // If the payload already exists in the database
     if (data) {
 
         let updatedAt = data.updatedAt;
@@ -93,22 +96,19 @@ app.get('/contributors/:username', (req, res, next) => { // eslint-disable-line 
             getContributorsFromGithub(username,true).then(payload => res.send(payload))
              .catch(error => console.log(error));
         }
-
         else{
           res.send(data.response);
         }
     }
-
-    //The payload don't exit
+    //The payload doesn't exit
     else{
       getContributorsFromGithub(username,false).then(payload => res.send(payload))
       .catch(error => console.log(error));
     }
- 
   }).catch(error => console.log(error));
-
 });
 
+// Provides JSON of all user's repos
 app.get('/repos/:username', (req, res, next) => { // eslint-disable-line no-unused-vars
   client.repos(req.params.username)
     .then(utils.getReposId)
@@ -116,6 +116,7 @@ app.get('/repos/:username', (req, res, next) => { // eslint-disable-line no-unus
     .catch(next);
 });
 
+// Provides JSON of languages used in all the user's repos
 app.get('/languages/:username', (req, res, next) => { // eslint-disable-line no-unused-vars
   client.userLanguages(req.params.username)
     .then(utils.getReposLanguagesStats)

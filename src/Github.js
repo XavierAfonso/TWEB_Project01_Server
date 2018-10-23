@@ -39,23 +39,28 @@ class Github {
         }));
   }
 
+  // Get JSON content of a user
   user(username) {
     return this.request(`/users/${username}`);
   }
 
+  // Get a JSON of the all repos of the given user
   repos(username) {
     return this.request(`/users/${username}/repos`);
   }
 
+  // Get a JSON of the language(s) of the given repo
   repoLanguages(repoName) {
     return this.request(`/repos/${repoName}/languages`);
   }
 
+  // Get a JSON of all the contributers of the given repo
   repoContributors(repoFullName) {
     return this.request(`/repos/${repoFullName}/contributors`)
       .catch(() => []); // If is not a json
   }
 
+  // Get a JSON of all unique contributors in all repos of a user
   reposContributors(username) {
     return this.repos(username)
       .then((repos) => {
@@ -64,6 +69,7 @@ class Github {
       });
   }
 
+  // Get a JSON all langages used in the repos of a user
   userLanguages(username) {
     return this.repos(username)
       .then((repos) => {
