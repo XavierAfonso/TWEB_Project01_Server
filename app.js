@@ -19,17 +19,17 @@ mongoose.connect(`mongodb://tweb:${process.env.MONGO_PASSWORD}@cluster0-shard-00
 // Enable CORS for the client app
 app.use(cors());
 
-function getContributors(username) {
+function getContributors(username, field) {
   return client.reposContributors(username)
-    .then(data => utils.getContributors(data, username));
+    .then(data => utils.getContributors(data, username, field));
 }
 
-function getContributorsFromGithub(username,update) {
+function getContributorsFromGithub(username, field, update) {
   const payload = [];
   let stringPayload = '';
 
   // Root
-  return getContributors(username).then((data) => {
+  return getContributors(username, field).then((data) => {
     payload.push(data);
 
     const rootContributors = payload[0].contributors;
@@ -68,10 +68,13 @@ app.get('/users/:username', (req, res, next) => { // eslint-disable-line no-unus
 });
 
 // Provides JSON of all co-contributors in all the user's repos
-app.get('/contributors/:username', (req, res, next) => { // eslint-disable-line no-unused-vars
+app.get('/contributors/:username/:field', (req, res, next) => { // eslint-disable-line no-unused-vars
   
   const username = req.params.username;
-  console.log(req.params.username);
+  const field = req.params.field;
+
+  console.log('user :' + req.params.username);
+  console.log('param :' + req.params.field);
 
   // Check in the database
   Database.findById({_id: username}).then((data) => {
@@ -84,7 +87,7 @@ app.get('/contributors/:username', (req, res, next) => { // eslint-disable-line 
         let hourDifference = Math.abs(updatedAt - now) / 36e5;
 
         if(hourDifference > delayCache){
-            getContributorsFromGithub(username,true).then(payload => res.send(payload))
+            getContributorsFromGithub(username, field, true).then(payload => res.send(payload))
              .catch(error => console.log(error));
         }
         else{
@@ -93,7 +96,7 @@ app.get('/contributors/:username', (req, res, next) => { // eslint-disable-line 
     }
     //The payload doesn't exit
     else{
-      getContributorsFromGithub(username,false).then(payload => res.send(payload))
+      getContributorsFromGithub(username, field, false).then(payload => res.send(payload))
       .catch(error => console.log(error));
     }
   }).catch(error => console.log(error));

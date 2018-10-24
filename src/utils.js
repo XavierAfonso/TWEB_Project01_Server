@@ -50,13 +50,14 @@ function uniqueContributors(contributors) {
 }
 
 // Formats 'contributors' into a JSON of the contributors of all repos of the 'rootUsername'
-function getContributors(contributors = [], rootUsername){
-  // Create language filter : 'language' 'Java'
+// with predicate value upon 'language'
+function getContributors(contributors = [], rootUsername, language){
+  // Create language filter : 'language' : language
   const resultMap = new Map();
   const usersArray = uniqueContributors(contributors);
   console.log("CONTRIBUTORS : ", usersArray);
 
-  const requests = usersArray.map(user => satisfiesPredicate(user, 'language', 'Java'));
+  const requests = usersArray.map(user => calcultePredicate(user, 'language', language));
   return Promise.all(requests)
     .then(resultat => {
       for(let i = 0; i < usersArray.length; i++){
@@ -69,7 +70,7 @@ function getContributors(contributors = [], rootUsername){
       const idsNewContributors = [];
 
       cpt = 0;
-      const limit = 5; //Limit of contributors
+      const limit = 2; //Limit of contributors
 
       contributors.forEach(function(item){
         item.forEach(function(element){
@@ -117,9 +118,9 @@ function getContributors(contributors = [], rootUsername){
 }
 
 // Check whether the user satisfies the predicate
-function satisfiesPredicate(username, predicate, value){
+function calcultePredicate(username, field, value){
   setTimeout(function(){
-    switch(predicate) {
+    switch(field) {
       case 'language' :
         return client.userLanguages(username)
         .then(languages => getReposLanguagesStats(languages))
@@ -137,7 +138,7 @@ function satisfiesPredicate(username, predicate, value){
       default:
           //do nothing
     }
-  }, 1000);
+  }, 2000);
 }
 
 
