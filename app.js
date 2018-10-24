@@ -25,7 +25,6 @@ function getContributors(username) {
 }
 
 function getContributorsFromGithub(username,update) {
-
   const payload = [];
   let stringPayload = '';
 
@@ -43,12 +42,9 @@ function getContributorsFromGithub(username,update) {
       });
     });
   }).then(() => {
-
-
     stringPayload = JSON.stringify(payload);
 
     if(!update){
-
     const document = new Database({ _id: username, response: stringPayload });
     document.save().then((result) => {
       console.log(result);
@@ -56,14 +52,9 @@ function getContributorsFromGithub(username,update) {
       console.log(error);
     });
   }
-
   else{
-
     Database.collection.findOneAndUpdate({ _id: username }, { $set: { response: stringPayload , updatedAt: new Date()}}).then(result => console.log(result));
   }
-
-
-
     return payload;
     //res.send(payload);
   });
