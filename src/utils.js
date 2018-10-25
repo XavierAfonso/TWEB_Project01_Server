@@ -65,15 +65,11 @@ function getContributors(contributors = [], rootUsername, language){
   const limit = 5; //Limit of contributors
   let myContinue = true;
 
-   return new Promise(
-    function (resolve, reject) {
+   return new Promise(function (resolve, reject) {
 
-      for(let x = 0; x<contributors.length && myContinue; x++){    
-
+      for(let x = 0; x <contributors.length && myContinue; x++){    
         let item = contributors[x];
-
           for(let y = 0; y <item.length && myContinue; y++){
-
             let element = item[y];
 
             //If it's the root
@@ -82,8 +78,7 @@ function getContributors(contributors = [], rootUsername, language){
               root.login = element.login;
               root.avatar_url = element.avatar_url;
               usersArray.push(root.login);
-            } 
-
+            }
             //If it's a contributor
             else {
               let contributor = {};
@@ -99,59 +94,47 @@ function getContributors(contributors = [], rootUsername, language){
                 cpt++;
               }
            }
-
           // Check the limit
           if(cpt >= limit){
             myContinue = false;
           }
         }
       }
-
       resolve();
     })
-    
     .then(() => {
-
       // If the root is empty
       if(isEmptyObject(root)){
           return client.user(rootUsername);
       }
-
-    }).then(data =>{
-
+    }).then(fetchedRoot =>{
       // The root must be updated
-      if(data!=null){
-        root.id = data.id;
-        root.login = data.login;
-        root.avatar_url = data.avatar_url;
+      if(fetchedRoot!=null){
+        root.id = fetchedRoot.id;
+        root.login = fetchedRoot.login;
+        root.avatar_url = fetchedRoot.avatar_url;
         usersArray.push(root.login);
       }
     })
     .then(() =>{
-
-    // Check the predicate
-    return Promise.all(usersArray.map(user => calcultePredicate(user, 'language', language)))
-    .then(resultat => {
-
-      for(let i = 0; i < usersArray.length; i++){
-        resultMap.set(usersArray[i], resultat[i]);
-      }
-
-      root.predicate = resultMap.get(root.login);
-
-      for(let x = 0; x < newContributors.length; x++){
+      // Check the predicate
+      return Promise.all(usersArray.map(user => computePredicate(user, 'language', language)))
+      .then(result => {
+        for(let i = 0; i < usersArray.length; i++){
+          // fill map (user => predicate)
+          resultMap.set(usersArray[i], result[i]);
+        }
+        // complete JSON with predicate
+        root.predicate = resultMap.get(root.login);
+        for(let x = 0; x < newContributors.length; x++){
           newContributors[x].predicate = resultMap.get(newContributors[x].login);
-      }
-
+        }
     }).then(()=>{
-
-      // return the data
+      // return the JSON data
       data["root"] = root;
       data["contributors"] = newContributors;
       return data;
-
     }).catch(err => {
-      
       console.log(err);
 
       // return the data anyway ?
@@ -164,7 +147,7 @@ function getContributors(contributors = [], rootUsername, language){
 }
 
 // Check whether the user satisfies the predicate
-function calcultePredicate(username, field, value){
+function computePredicate(username, field, value){
 
   return new Promise(
     function (resolve, reject) {
