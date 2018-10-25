@@ -81,6 +81,7 @@ function getContributors(contributors = [], rootUsername, language){
               root.id = element.id;
               root.login = element.login;
               root.avatar_url = element.avatar_url;
+              root.html_url = element.html_url;
               usersArray.push(root.login);
             } 
 
@@ -94,6 +95,7 @@ function getContributors(contributors = [], rootUsername, language){
                 idsNewContributors.push(contributor.id);
                 contributor.login = element.login;
                 contributor.avatar_url = element.avatar_url;
+                contributor.html_url = element.html_url;
                 usersArray.push(contributor.login);
                 newContributors.push(contributor);
                 cpt++;
@@ -124,6 +126,7 @@ function getContributors(contributors = [], rootUsername, language){
         root.id = data.id;
         root.login = data.login;
         root.avatar_url = data.avatar_url;
+        root.html_url = data.html_url;
         usersArray.push(root.login);
       }
     })
