@@ -135,12 +135,9 @@ function getContributors(contributors = [], rootUsername, language){
       data["contributors"] = newContributors;
       return data;
     }).catch(err => {
-      console.log(err);
-
-      // return the data anyway ?
-      data["root"] = root;
-      data["contributors"] = newContributors;
-      return data;
+      console.error(err);
+      console.log(data);
+      throw new Error("Can't process data");
     });
 
   });

@@ -13,14 +13,15 @@ const client = new Github({ token: process.env.OAUTH_TOKEN });
 const delayCache = 1; // 1 hour
 
 // DB connection
-mongoose.connect(`mongodb://tweb:${process.env.MONGO_PASSWORD}@cluster0-shard-00-00-tfzh9.mongodb.net:27017,cluster0-shard-00-01-tfzh9.mongodb.net:27017,cluster0-shard-00-02-tfzh9.mongodb.net:27017/test?ssl=true&replicaSet=Cluster0-shard-0&authSource=admin&retryWrites=true`, { useNewUrlParser: true });
+mongoose.connect(`mongodb://tweb:${process.env.MONGO_PASSWORD}@cluster0-shard-00-00-tfzh9.mongodb.net:27017,cluster0-shard-00-01-tfzh9.mongodb.net:27017,cluster0-shard-00-02-tfzh9.mongodb.net:27017/test?ssl=true&replicaSet=Cluster0-shard-0&authSource=admin&retryWrites=true`, { useNewUrlParser: true })
+.catch(error => {console.error("MongoDB not reachable : " + error)});
 
 // Enable CORS for the client app
 app.use(cors());
 
 function getContributors(username, field) {
   return client.reposContributors(username)
-    .then(data => utils.getContributors(data, username, field));
+    .then(data => utils.getContributors(data, username, field))
 }
 
 function getContributorsFromGithub(username, field, update) {
@@ -93,7 +94,7 @@ app.get('/contributors/:username/:field', (req, res, next) => { // eslint-disabl
 
         if(hourDifference > delayCache){
             getContributorsFromGithub(username, field, true).then(payload => res.send(payload))
-             .catch(error => console.log(error));
+             .catch(next);
         }
         else{
           res.send(data.response);
@@ -102,9 +103,9 @@ app.get('/contributors/:username/:field', (req, res, next) => { // eslint-disabl
     //The payload doesn't exit
     else{
       getContributorsFromGithub(username, field, false).then(payload => res.send(payload))
-      .catch(error => console.log(error));
+      .catch(next);
     }
-  }).catch(error => console.log(error));
+  }).catch(next);
 });
 
 // Provides JSON of all user's repos
@@ -132,7 +133,7 @@ app.use((req, res, next) => {
 
 // Error handler
 app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
-  console.error(err);
+  console.error('Error handler : ' + err);
   res.status(err.status || 500);
   res.send(err.message);
 });
