@@ -7,7 +7,6 @@ const Github = require('./src/Github');
 const utils = require('./src/utils');
 const Database = require('./src/model');
 
-
 const app = express();
 const port = process.env.PORT || 3000;
 const client = new Github({ token: process.env.OAUTH_TOKEN });
@@ -35,17 +34,20 @@ function getContributorsFromGithub(username, field, update) {
     const rootContributors = payload[0].contributors;
     const nameContributorsOfRoot = rootContributors.map(contributors => contributors.login);
 
+    const ihavenotidea = name => getContributors(name,field);
+
     // Contributors
-    return Promise.all((nameContributorsOfRoot).map(getContributors)).then((element) => {
+    return Promise.all((nameContributorsOfRoot).map(ihavenotidea)).then((element) => {
       element.forEach((item) => {
         payload.push(item);
       });
     });
   }).then(() => {
     stringPayload = JSON.stringify(payload);
+    const request = username + "/" + field;
 
     if(!update){
-    const document = new Database({ _id: username, response: stringPayload });
+    const document = new Database({ _id: request, response: stringPayload });
     document.save().then((result) => {
       console.log(result);
     }).catch((error) => {
@@ -53,7 +55,7 @@ function getContributorsFromGithub(username, field, update) {
     });
   }
   else{
-    Database.collection.findOneAndUpdate({ _id: username }, { $set: { response: stringPayload , updatedAt: new Date()}}).then(result => console.log(result));
+    Database.collection.findOneAndUpdate({ _id: request }, { $set: { response: stringPayload , updatedAt: new Date()}}).then(result => console.log(result));
   }
     return payload;
     //res.send(payload);
@@ -70,14 +72,17 @@ app.get('/users/:username', (req, res, next) => { // eslint-disable-line no-unus
 // Provides JSON of all co-contributors in all the user's repos
 app.get('/contributors/:username/:field', (req, res, next) => { // eslint-disable-line no-unused-vars
   
-  const username = req.params.username;
-  const field = req.params.field;
+  let username = req.params.username;
+  let field = req.params.field;
+  username = username.toLowerCase();
+  field = field.toLowerCase();
 
-  console.log('user :' + req.params.username);
-  console.log('param :' + req.params.field);
+  console.log('user :' + username);
+  console.log('param :' + field);
+  const request = username + "/" + field;
 
   // Check in the database
-  Database.findById({_id: username}).then((data) => {
+  Database.findById({_id: request}).then((data) => {
    
     // If the payload already exists in the database
     if (data) {

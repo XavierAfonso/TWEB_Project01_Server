@@ -18,9 +18,11 @@ function getReposLanguagesStats(reposLanguages = []) {
   const stats = {};
   const countLanguages = o => {
     Object.keys(o).forEach(key => {
+      newKey = key.toLowerCase();
+      newKey = newKey.replace(/ /g,'');
       const value = o[key];
       const current = stats[key] || 0;
-      stats[key] = current + value;
+      stats[newKey] = current + value;
     });
   };
   reposLanguages.forEach(countLanguages);
@@ -52,83 +54,145 @@ function uniqueContributors(contributors) {
 // Formats 'contributors' into a JSON of the contributors of all repos of the 'rootUsername'
 // with predicate value upon 'language'
 function getContributors(contributors = [], rootUsername, language){
-  // Create language filter : 'language' : language
+
   const resultMap = new Map();
-  const usersArray = uniqueContributors(contributors);
-  console.log("CONTRIBUTORS : ", usersArray);
+  let usersArray = [];
+  const root  = {};
+  const data = {};
+  let newContributors = []
+  const idsNewContributors = [];
+  let cpt = 0;
+  const limit = 5; //Limit of contributors
+  let myContinue = true;
 
-  const requests = usersArray.map(user => calcultePredicate(user, 'language', language));
-  return Promise.all(requests)
-    .then(resultat => {
-      for(let i = 0; i < usersArray.length; i++){
-        resultMap.set(usersArray[i], resultat[i]);
-      }
-      
-      const root  = {};
-      const data = {};
-      const newContributors = []
-      const idsNewContributors = [];
+   return new Promise(
+    function (resolve, reject) {
 
-      cpt = 0;
-      const limit = 2; //Limit of contributors
+      for(let x = 0; x<contributors.length && myContinue; x++){    
 
-      contributors.forEach(function(item){
-        item.forEach(function(element){
-          //If it's the root
-          if(rootUsername==element.login){
-            root.id = element.id;
-            root.login = element.login;
-            root.avatar_url = element.avatar_url;
-            root.predicate = resultMap.get(element.login);
-           }
-          //If it's a contributor
-          else {
-            if(cpt<limit){ //TODO remove
+        let item = contributors[x];
+
+          for(let y = 0; y <item.length && myContinue; y++){
+
+            let element = item[y];
+
+            //If it's the root
+            if(rootUsername==element.login.toLowerCase()){
+              root.id = element.id;
+              root.login = element.login;
+              root.avatar_url = element.avatar_url;
+              usersArray.push(root.login);
+            } 
+
+            //If it's a contributor
+            else {
               let contributor = {};
               contributor.id = element.id;
+
               //If the contributor doesn't exist yet
               if(!idsNewContributors.includes(contributor.id)){
                 idsNewContributors.push(contributor.id);
                 contributor.login = element.login;
                 contributor.avatar_url = element.avatar_url;
-                contributor.predicate = resultMap.get(element.login);
-
+                usersArray.push(contributor.login);
                 newContributors.push(contributor);
                 cpt++;
               }
-            }//TODO remove
+           }
+
+          // Check the limit
+          if(cpt >= limit){
+            myContinue = false;
           }
-        });
-      });
-      //if the root was not found
-      if(isEmptyObject(root)){
-        let tmp = client.user(rootUsername);
-        tmp.then(data => {
-          root.id = data.id;
-          root.login = data.login;
-          root.avatar_url = data.avatar_url;
-          root.predicate = resultMap.get(root.login);
-        });
+        }
       }
 
+      resolve();
+    })
+    
+    .then(() => {
+
+      // If the root is empty
+      if(isEmptyObject(root)){
+          return client.user(rootUsername);
+      }
+
+    }).then(data =>{
+
+      // The root must be updated
+      if(data!=null){
+        root.id = data.id;
+        root.login = data.login;
+        root.avatar_url = data.avatar_url;
+        usersArray.push(root.login);
+      }
+    })
+    .then(() =>{
+
+    // Check the predicate
+    return Promise.all(usersArray.map(user => calcultePredicate(user, 'language', language)))
+    .then(resultat => {
+
+      for(let i = 0; i < usersArray.length; i++){
+        resultMap.set(usersArray[i], resultat[i]);
+      }
+
+      root.predicate = resultMap.get(root.login);
+
+      for(let x = 0; x < newContributors.length; x++){
+          newContributors[x].predicate = resultMap.get(newContributors[x].login);
+      }
+
+    }).then(()=>{
+
+      // return the data
       data["root"] = root;
       data["contributors"] = newContributors;
-  return data;
-  })
+      return data;
+
+    }).catch(err => {
+      
+      console.log(err);
+
+      // return the data anyway ?
+      data["root"] = root;
+      data["contributors"] = newContributors;
+      return data;
+    });
+
+  });
 }
 
 // Check whether the user satisfies the predicate
 function calcultePredicate(username, field, value){
-  setTimeout(function(){
+
+  return new Promise(
+    function (resolve, reject) {
+
     switch(field) {
       case 'language' :
         return client.userLanguages(username)
         .then(languages => getReposLanguagesStats(languages))
+        /*.then(result => new Promise(resolve => { // <== create a promise here
+          setTimeout(function() {
+            console.log("Time out Done!");
+            console.log(result);
+            console.log("========== Then Block 3");
+            resolve(result); // <== resolve it in callback
+          }, 5000)}))*/
         .then(stats => {
-          return stats.hasOwnProperty(value);
+
+          let find =  stats.hasOwnProperty(value);
+    
+          console.log(stats);
+          console.log(username + " : " + " : " + find);
+
+          return resolve(find);
         })
-        .catch(error => console.log('satisfiedPredicates : ' + error));
-        break;
+        .catch(error => {
+          console.log('satisfiedPredicates : ' + error);
+          return resolve(false); // return false if error
+      });
       case 'company' :
         break;
       case 'location':
@@ -138,9 +202,8 @@ function calcultePredicate(username, field, value){
       default:
           //do nothing
     }
-  }, 2000);
+  });
 }
-
 
 module.exports = {
   getReposLanguagesStats,
