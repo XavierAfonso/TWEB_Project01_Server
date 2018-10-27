@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon --watch app.js --watch src",
-    "test": "mocha"
+    "test": "mocha test/**/*.js"
   },
   "author": "XavierAfonso",
   "license": "ISC",

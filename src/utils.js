@@ -1,15 +1,8 @@
 const Github = require('./Github');
+const Database = require('../src/model');
 
 const client = new Github({ token: process.env.OAUTH_TOKEN });
-
-// Check if the object is empty
-function isEmptyObject(obj) {
-  let name;
-  if (Object.prototype.hasOwnProperty.call(obj, name)) {
-    return false;
-  }
-  return true;
-}
+const resultMap = new Map();
 
 // Get JSON with languages stats
 function getReposLanguagesStats(reposLanguages = []) {
@@ -37,67 +30,55 @@ function getReposId(reposid = []) {
 
   return stats;
 }
-
-// convert JSON into an array of unique contributors
-function uniqueContributors(contributors) {
-  const users = new Set();
-  contributors.forEach((item) => {
-    item.forEach((element) => {
-      users.add(element.login);
-    });
-  });
-  const usersArray = Array.from(users);
-  return usersArray;
-}
-
 // Check whether the user satisfies the predicate
 function calcultePredicate(username, field, value) {
   return new Promise((resolve) => {
-    switch (field) {
-      case 'language':
-        return client.userLanguages(username)
-          .then(languages => getReposLanguagesStats(languages))
-        /*
-        .then(result => new Promise(resolve => { // <== create a promise here
-          setTimeout(function() {
-            console.log("Time out Done!");
-            console.log(result);
-            console.log("========== Then Block 3");
-            resolve(result); // <== resolve it in callback
-          }, 5000)}))
-          */
-          .then((stats) => {
-            const find = Object.prototype.hasOwnProperty.call(stats, value);
-            console.log(stats);
-            console.log(`${username} :  ${find}`);
-            return resolve(find);
-          })
-          .catch((error) => {
-            console.log(`satisfiedPredicates : ${error}`);
-            return resolve(false); // return false if error
-          });
-      case 'company':
-        break;
-      case 'location':
-        break;
-      case 'hireable':
-        break;
-      default:
-          // do nothing
+    // if we already now the result
+
+    if (resultMap.has(username)) {
+      // We already know the result
+    } else {
+      switch (field) {
+        case 'language':
+          return client.userLanguages(username)
+            .then(languages => getReposLanguagesStats(languages))
+            .then((stats) => {
+              const find = Object.prototype.hasOwnProperty.call(stats, value);
+              resultMap.set(username, find);
+              console.log(stats);
+              console.log(`${username} :  ${find}`);
+              // return resolve(find);
+              return resolve();
+            })
+            .catch((error) => {
+              console.log(`satisfiedPredicates : ${error}`);
+              // return resolve(false); // return false if error
+              return resolve();
+            });
+        case 'company':
+          break;
+        case 'location':
+          break;
+        case 'hireable':
+          break;
+        default:
+            // do nothing
+      }
     }
-    return resolve(false);
+    // return resolve(result);
+    return resolve();
   });
 }
 
 // Formats 'contributors' into a JSON of the contributors of all repos of the 'rootUsername'
 // with predicate value upon 'language'
-function getContributors(contributors = [], rootUsername, language) {
-  const resultMap = new Map();
+function getFormattedContributors(contributors = [], rootUsername, language) {
+
   const usersArray = [];
-  const root = {};
+  let root = null;
   const data = {};
   const newContributors = [];
-  const idsNewContributors = [];
+  const uniqueIds = [];
   let cpt = 0;
   const limit = 5; // Limit of contributors
   let myContinue = true;
@@ -107,21 +88,24 @@ function getContributors(contributors = [], rootUsername, language) {
       const item = contributors[x];
       for (let y = 0; y < item.length && myContinue; y++) {
         const element = item[y];
-        // If it's the root
-        if (rootUsername === element.login.toLowerCase()) {
-          root.id = element.id;
-          root.login = element.login;
-          root.avatar_url = element.avatar_url;
-          root.html_url = element.html_url;
-          usersArray.push(root.login);
-        } else {
-          // If it's a contributor
-          const contributor = {};
-          contributor.id = element.id;
 
-          // If the contributor doesn't exist yet
-          if (!idsNewContributors.includes(contributor.id)) {
-            idsNewContributors.push(contributor.id);
+        if (!uniqueIds.includes(element.id)) {
+          uniqueIds.push(element.id);
+
+          // If it's the root
+          if (rootUsername === element.login.toLowerCase()) {
+            root = {};
+            root.id = element.id;
+            root.login = element.login;
+            root.avatar_url = element.avatar_url;
+            root.html_url = element.html_url;
+            usersArray.push(root.login);
+          } else {
+            // If it's a contributor
+            const contributor = {};
+            contributor.id = element.id;
+
+            // If the contributor doesn't exist yet
             contributor.login = element.login;
             contributor.avatar_url = element.avatar_url;
             contributor.html_url = element.html_url;
@@ -140,13 +124,14 @@ function getContributors(contributors = [], rootUsername, language) {
     resolve();
   }).then(() => {
     // If the root is empty
-    if (isEmptyObject(root)) {
+    if ((root == null)) {
       return client.user(rootUsername);
     }
     return null;
   }).then((value) => {
     // The root must be updated
     if (value != null) {
+      root = {};
       root.id = value.id;
       root.login = value.login;
       root.avatar_url = value.avatar_url;
@@ -154,20 +139,17 @@ function getContributors(contributors = [], rootUsername, language) {
       usersArray.push(root.login);
     }
   }).then(() => {
+
     // Check the predicate
     return Promise.all(usersArray.map(user => calcultePredicate(user, 'language', language)))
-      .then((resultat) => {
-        for (let i = 0; i < usersArray.length; i++) {
-          resultMap.set(usersArray[i], resultat[i]);
-        }
-
+      .then(() => {
         root.predicate = resultMap.get(root.login);
 
         for (let x = 0; x < newContributors.length; x++) {
           newContributors[x].predicate = resultMap.get(newContributors[x].login);
         }
       }).then(() => {
-      // return the data
+        // return the data
         data.root = root;
         data.contributors = newContributors;
         return data;
@@ -181,8 +163,65 @@ function getContributors(contributors = [], rootUsername, language) {
   });
 }
 
+function getContributors(username, field) {
+  return client.reposContributors(username)
+    .then(data => getFormattedContributors(data, username, field));
+}
+
+function getContributorsFromGithub(username, field) {
+  const payload = [];
+
+  // Root
+  return getContributors(username, field).then((data) => {
+    payload.push(data);
+
+    const rootContributors = payload[0].contributors;
+    const nameContributorsOfRoot = rootContributors.map(contributors => contributors.login);
+
+    const mapContributors = name => getContributors(name, field);
+
+    // Contributors
+    return Promise.all((nameContributorsOfRoot).map(mapContributors)).then((element) => {
+      element.forEach((item) => {
+        payload.push(item);
+      });
+      return payload;
+    });
+  });
+}
+
+function saveElement(request, payload) {
+
+  const stringPayload = JSON.stringify(payload);
+  const document = new Database({ _id: request, response: stringPayload });
+
+  return document.save().then((result) => {
+    console.log(result);
+    return payload;
+  }).catch((error) => {
+    console.log(error);
+    return payload;
+  });
+}
+
+function updateElement(request, payload) {
+  const stringPayload = JSON.stringify(payload);
+  return Database.collection.findOneAndUpdate({ _id: request },
+    { $set: { response: stringPayload, updatedAt: new Date() } })
+    .then((result) => {
+      console.log(result);
+      return payload;
+    }).catch((error) => {
+      console.log(error);
+      return payload;
+    });
+}
+
 module.exports = {
   getReposLanguagesStats,
   getReposId,
   getContributors,
+  getContributorsFromGithub,
+  saveElement,
+  updateElement,
 };

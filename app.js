@@ -21,51 +21,6 @@ mongoose.connect(`mongodb://tweb:${process.env.MONGO_PASSWORD}@cluster0-shard-00
 // Enable CORS for the client app
 app.use(cors());
 
-function getContributors(username, field) {
-  return client.reposContributors(username)
-    .then(data => utils.getContributors(data, username, field))
-}
-
-function getContributorsFromGithub(username, field, update) {
-  const payload = [];
-  let stringPayload = '';
-
-  // Root
-  return getContributors(username, field).then((data) => {
-    payload.push(data);
-
-    const rootContributors = payload[0].contributors;
-    const nameContributorsOfRoot = rootContributors.map(contributors => contributors.login);
-
-    const ihavenotidea = name => getContributors(name, field);
-
-    // Contributors
-    return Promise.all((nameContributorsOfRoot).map(ihavenotidea)).then((element) => {
-      element.forEach((item) => {
-        payload.push(item);
-      });
-    });
-  }).then(() => {
-    stringPayload = JSON.stringify(payload);
-    const request = `${username}/${field}`;
-
-    if (!update) {
-      const document = new Database({ _id: request, response: stringPayload });
-      document.save().then((result) => {
-        console.log(result);
-      }).catch((error) => {
-        console.log(error);
-      });
-    } else {
-      Database.collection.findOneAndUpdate({ _id: request },
-        { $set: { response: stringPayload, updatedAt: new Date() } })
-        .then(result => console.log(result));
-    }
-    return payload;
-    // res.send(payload);
-  });
-}
-
 // Provides JSON of user 'username'
 app.get('/users/:username', (req, res, next) => { // eslint-disable-line no-unused-vars
   client.user(req.params.username)
@@ -84,6 +39,7 @@ app.get('/contributors/:username/:field', (req, res, next) => { // eslint-disabl
 
   console.log(`user : ${username}`);
   console.log(`param : ${field}`);
+
   const request = `${username}/${field}`;
 
   // Check in the database
@@ -96,14 +52,18 @@ app.get('/contributors/:username/:field', (req, res, next) => { // eslint-disabl
       const hourDifference = Math.abs(updatedAt - now) / 36e5;
 
       if (hourDifference > delayCache) {
-        getContributorsFromGithub(username, field, true).then(payload => res.send(payload))
+        utils.getContributorsFromGithub(username, field)
+          .then(payload => utils.updateElement(request, payload))
+          .then(payload => res.send(payload))
           .catch(next);
       } else {
         res.send(data.response);
       }
     } else {
       // The payload doesn't exit
-      getContributorsFromGithub(username, field, false).then(payload => res.send(payload))
+      utils.getContributorsFromGithub(username, field)
+        .then(payload => utils.saveElement(request, payload))
+        .then(payload => res.send(payload))
         .catch(next);
     }
   }).catch(next);
@@ -140,6 +100,14 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
 });
 
 app.listen(port, () => {
+  // Clear the database
   // eslint-disable-next-line no-console
+  /*
+    Database.deleteMany({}).then((responses) => {
+    console.log(`DROP DATABASE : ${responses}`);
+    console.log(`Server listening at http://localhost:${port}`);
+  });
+  */
+
   console.log(`Server listening at http://localhost:${port}`);
 });
