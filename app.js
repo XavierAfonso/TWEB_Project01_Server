@@ -29,18 +29,18 @@ app.get('/users/:username', (req, res, next) => { // eslint-disable-line no-unus
 });
 
 // Provides JSON of all co-contributors in all the user's repos
-app.get('/contributors/:username/:field', (req, res, next) => { // eslint-disable-line no-unused-vars
+app.get('/contributors/:username/:field/:value', (req, res, next) => { // eslint-disable-line no-unused-vars
   // eslint-disable-next-line
-  let username = req.params.username;
+  const username = req.params.username.toLowerCase();
   // eslint-disable-next-line
-  let field = req.params.field;
-  username = username.toLowerCase();
-  field = field.toLowerCase();
+  const field = req.params.field.toLowerCase();
+  // eslint-disable-next-line
+  const searchValue = req.params.value.toLowerCase();
 
   console.log(`user : ${username}`);
-  console.log(`param : ${field}`);
+  console.log(`params : ${field}/${searchValue}`);
 
-  const request = `${username}/${field}`;
+  const request = `${username}/${field}/${searchValue}`;
 
   // Check in the database
   Database.findById({ _id: request }).then((data) => {
@@ -52,7 +52,7 @@ app.get('/contributors/:username/:field', (req, res, next) => { // eslint-disabl
       const hourDifference = Math.abs(updatedAt - now) / 36e5;
 
       if (hourDifference > delayCache) {
-        utils.getContributorsFromGithub(username, field)
+        utils.getContributorsFromGithub(username, field, searchValue)
           .then(payload => utils.updateElement(request, payload))
           .then(payload => res.send(payload))
           .catch(next);
@@ -61,7 +61,7 @@ app.get('/contributors/:username/:field', (req, res, next) => { // eslint-disabl
       }
     } else {
       // The payload doesn't exit
-      utils.getContributorsFromGithub(username, field)
+      utils.getContributorsFromGithub(username, field, searchValue)
         .then(payload => utils.saveElement(request, payload))
         .then(payload => res.send(payload))
         .catch(next);

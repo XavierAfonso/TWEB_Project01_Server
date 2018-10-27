@@ -31,7 +31,7 @@ function getReposId(reposid = []) {
   return stats;
 }
 // Check whether the user satisfies the predicate
-function calcultePredicate(username, field, value) {
+function calculatePredicate(username, field, searchValue) {
   return new Promise((resolve) => {
     // if we already now the result
 
@@ -43,24 +43,63 @@ function calcultePredicate(username, field, value) {
           return client.userLanguages(username)
             .then(languages => getReposLanguagesStats(languages))
             .then((stats) => {
-              const find = Object.prototype.hasOwnProperty.call(stats, value);
-              resultMap.set(username, find);
+              const find = Object.prototype.hasOwnProperty.call(stats, searchValue);
+              let result = 0;
+              if (find) {
+                result = stats[searchValue];
+              }
+              resultMap.set(username, [find, result]);
               console.log(stats);
-              console.log(`${username} :  ${find}`);
+              console.log(`${username} :  ${find} ${result}`);
               // return resolve(find);
               return resolve();
             })
             .catch((error) => {
               console.log(`satisfiedPredicates : ${error}`);
-              // return resolve(false); // return false if error
               return resolve();
             });
         case 'company':
-          break;
+          return client.user(username)
+            .then(user => {
+              let find = false;
+              if (user.company != null){
+                find = user.company.toLowerCase().includes(searchValue);
+              }
+              resultMap.set(username, [find, user.company]);
+              console.log(`${username} :  ${find} ${user.company}`);
+              return resolve();
+            }).catch((error) => {
+              console.log(`satisfiedPredicates : ${error}`);
+              return resolve();
+            });
         case 'location':
-          break;
-        case 'hireable':
-          break;
+          return client.user(username)
+          .then(user => {
+            let find = false;
+            if (user.location != null) {
+              find = user.location.toLowerCase().includes(searchValue);
+            }
+            resultMap.set(username, [find, user.location]);
+            console.log(`${username} :  ${find} ${user.location}`);
+            return resolve();
+          }).catch((error) => {
+            console.log(`satisfiedPredicates : ${error}`);
+            return resolve();
+          });
+          case 'bio':
+            return client.user(username)
+            .then(user => {
+              let find = false;
+              if (user.bio != null) {
+                find = user.bio.toLowerCase().includes(searchValue);
+              }
+              resultMap.set(username, [find, user.bio]);
+              console.log(`${username} :  ${find} ${user.bio}`);
+              return resolve();
+            }).catch((error) => {
+              console.log(`satisfiedPredicates : ${error}`);
+              return resolve();
+            });
         default:
             // do nothing
       }
@@ -71,16 +110,15 @@ function calcultePredicate(username, field, value) {
 }
 
 // Formats 'contributors' into a JSON of the contributors of all repos of the 'rootUsername'
-// with predicate value upon 'language'
-function getFormattedContributors(contributors = [], rootUsername, language) {
-
+// with predicate value 'searchValue' upon 'field'
+function getFormattedContributors(contributors = [], rootUsername, field, searchValue) {
   const usersArray = [];
   let root = null;
   const data = {};
   const newContributors = [];
   const uniqueIds = [];
   let cpt = 0;
-  const limit = 5; // Limit of contributors
+  const limit = 5; // Limit of contributors per repo
   let myContinue = true;
 
   return new Promise((resolve) => {
@@ -139,14 +177,19 @@ function getFormattedContributors(contributors = [], rootUsername, language) {
       usersArray.push(root.login);
     }
   }).then(() => {
-
     // Check the predicate
-    return Promise.all(usersArray.map(user => calcultePredicate(user, 'language', language)))
+    return Promise.all(usersArray.map(user => calculatePredicate(user, field, searchValue)))
       .then(() => {
-        root.predicate = resultMap.get(root.login);
+        root.predicate = [];
+        root.predicate[0] = resultMap.get(root.login)[0];
+        root.predicate[1] = resultMap.get(root.login)[1];
+        root.predicate[2] = field;
 
         for (let x = 0; x < newContributors.length; x++) {
-          newContributors[x].predicate = resultMap.get(newContributors[x].login);
+          newContributors[x].predicate = [];
+          newContributors[x].predicate[0] = resultMap.get(newContributors[x].login)[0];
+          newContributors[x].predicate[1] = resultMap.get(newContributors[x].login)[1];
+          newContributors[x].predicate[2] = field;
         }
       }).then(() => {
         // return the data
@@ -155,7 +198,7 @@ function getFormattedContributors(contributors = [], rootUsername, language) {
         return data;
       }).catch((err) => {
         console.log(err);
-        // return the data anyway ?
+        // return the data anyway
         data.root = root;
         data.contributors = newContributors;
         return data;
@@ -163,22 +206,22 @@ function getFormattedContributors(contributors = [], rootUsername, language) {
   });
 }
 
-function getContributors(username, field) {
+function getContributors(username, field, searchValue) {
   return client.reposContributors(username)
-    .then(data => getFormattedContributors(data, username, field));
+    .then(data => getFormattedContributors(data, username, field, searchValue));
 }
 
-function getContributorsFromGithub(username, field) {
+function getContributorsFromGithub(username, field, searchValue) {
   const payload = [];
 
   // Root
-  return getContributors(username, field).then((data) => {
+  return getContributors(username, field, searchValue).then((data) => {
     payload.push(data);
 
     const rootContributors = payload[0].contributors;
     const nameContributorsOfRoot = rootContributors.map(contributors => contributors.login);
 
-    const mapContributors = name => getContributors(name, field);
+    const mapContributors = name => getContributors(name, field, searchValue);
 
     // Contributors
     return Promise.all((nameContributorsOfRoot).map(mapContributors)).then((element) => {
