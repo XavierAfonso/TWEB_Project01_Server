@@ -3,7 +3,6 @@ const Github = require('./Github');
 const Database = require('../src/model');
 
 const client = new Github({ token: process.env.OAUTH_TOKEN });
-const resultMap = new Map();
 
 // Get JSON with languages stats
 function getReposLanguagesStats(reposLanguages = []) {
@@ -32,7 +31,7 @@ function getReposId(reposid = []) {
   return stats;
 }
 // Check whether the user satisfies the predicate
-function calculatePredicate(username, field, searchValue) {
+function calculatePredicate(username, field, searchValue, resultMap) {
   return new Promise((resolve) => {
     // if we already now the result
 
@@ -50,9 +49,7 @@ function calculatePredicate(username, field, searchValue) {
                 result = stats[searchValue];
               }
               resultMap.set(username, [find, result]);
-              // console.log(stats);
-              // console.log(`${username} :  ${find} ${result}`);
-              // return resolve(find);
+              console.log(`${username} :  ${find}`);
               return resolve();
             })
             .catch((error) => {
@@ -121,6 +118,8 @@ function getFormattedContributors(contributors = [], rootUsername, field, search
   let cpt = 0;
   const limit = 5; // Limit of contributors per repo
   let myContinue = true;
+  const resultMap = new Map();
+  const rootUsernameLowerCase = rootUsername.toLowerCase();
 
   return new Promise((resolve) => {
     for (let x = 0; x < contributors.length && myContinue; x++) {
@@ -132,7 +131,7 @@ function getFormattedContributors(contributors = [], rootUsername, field, search
           uniqueIds.push(element.id);
 
           // If it's the root
-          if (rootUsername === element.login.toLowerCase()) {
+          if (rootUsernameLowerCase === element.login.toLowerCase()) {
             root = {};
             root.id = element.id;
             root.login = element.login;
@@ -179,9 +178,11 @@ function getFormattedContributors(contributors = [], rootUsername, field, search
     }
   }).then(() => {
     // Check the predicate
-    return Promise.all(usersArray.map(user => calculatePredicate(user, field, searchValue)))
+    return Promise.all(usersArray.map(user => calculatePredicate(user, field, searchValue, resultMap)))
       .then(() => {
         root.predicate = [];
+
+        /* eslint-disable */
         root.predicate[0] = resultMap.get(root.login)[0];
         root.predicate[1] = resultMap.get(root.login)[1];
         root.predicate[2] = field;
@@ -191,7 +192,11 @@ function getFormattedContributors(contributors = [], rootUsername, field, search
           newContributors[x].predicate[0] = resultMap.get(newContributors[x].login)[0];
           newContributors[x].predicate[1] = resultMap.get(newContributors[x].login)[1];
           newContributors[x].predicate[2] = field;
+
+          /* eslint-enable */
         }
+
+        resultMap.clear();
       }).then(() => {
         // return the data
         data.root = root;
@@ -199,6 +204,7 @@ function getFormattedContributors(contributors = [], rootUsername, field, search
         return data;
       }).catch((err) => {
         console.log(err);
+
         // return the data anyway
         data.root = root;
         data.contributors = newContributors;
@@ -207,11 +213,13 @@ function getFormattedContributors(contributors = [], rootUsername, field, search
   });
 }
 
+// Get the contributors and format the data
 function getContributors(username, field, searchValue) {
   return client.reposContributors(username)
     .then(data => getFormattedContributors(data, username, field, searchValue));
 }
 
+// Get the contributors from github
 function getContributorsFromGithub(username, field, searchValue) {
   const payload = [];
 
@@ -234,28 +242,30 @@ function getContributorsFromGithub(username, field, searchValue) {
   });
 }
 
+// Save the element on database
 function saveElement(request, payload) {
   const stringPayload = JSON.stringify(payload);
   const document = new Database({ _id: request, response: stringPayload });
 
   return document.save().then((result) => {
-    // console.log(result);
+    console.log(result);
     return payload;
   }).catch((error) => {
-    // console.log(error);
+    console.log(error);
     return payload;
   });
 }
 
+// update the element on database
 function updateElement(request, payload) {
   const stringPayload = JSON.stringify(payload);
   return Database.collection.findOneAndUpdate({ _id: request },
     { $set: { response: stringPayload, updatedAt: new Date() } })
     .then((result) => {
-      // console.log(result);
+      console.log(result);
       return payload;
     }).catch((error) => {
-      // console.log(error);
+      console.log(error);
       return payload;
     });
 }
