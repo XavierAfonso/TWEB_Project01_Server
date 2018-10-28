@@ -1,3 +1,4 @@
+
 const Github = require('./Github');
 const Database = require('../src/model');
 
@@ -45,13 +46,13 @@ function calcultePredicate(username, field, value) {
             .then((stats) => {
               const find = Object.prototype.hasOwnProperty.call(stats, value);
               resultMap.set(username, find);
-              console.log(stats);
-              console.log(`${username} :  ${find}`);
+              // console.log(stats);
+              // console.log(`${username} :  ${find}`);
               // return resolve(find);
               return resolve();
             })
             .catch((error) => {
-              console.log(`satisfiedPredicates : ${error}`);
+              // console.log(`satisfiedPredicates : ${error}`);
               // return resolve(false); // return false if error
               return resolve();
             });
@@ -80,7 +81,7 @@ function getFormattedContributors(contributors = [], rootUsername, language) {
   const newContributors = [];
   const uniqueIds = [];
   let cpt = 0;
-  const limit = 5; // Limit of contributors
+  const limit = 1; // Limit of contributors
   let myContinue = true;
 
   return new Promise((resolve) => {
@@ -154,7 +155,7 @@ function getFormattedContributors(contributors = [], rootUsername, language) {
         data.contributors = newContributors;
         return data;
       }).catch((err) => {
-        console.log(err);
+        //console.log(err);
         // return the data anyway ?
         data.root = root;
         data.contributors = newContributors;
@@ -191,15 +192,14 @@ function getContributorsFromGithub(username, field) {
 }
 
 function saveElement(request, payload) {
-
   const stringPayload = JSON.stringify(payload);
   const document = new Database({ _id: request, response: stringPayload });
 
   return document.save().then((result) => {
-    console.log(result);
+    // console.log(result);
     return payload;
   }).catch((error) => {
-    console.log(error);
+    // console.log(error);
     return payload;
   });
 }
@@ -209,10 +209,10 @@ function updateElement(request, payload) {
   return Database.collection.findOneAndUpdate({ _id: request },
     { $set: { response: stringPayload, updatedAt: new Date() } })
     .then((result) => {
-      console.log(result);
+      // console.log(result);
       return payload;
     }).catch((error) => {
-      console.log(error);
+      // console.log(error);
       return payload;
     });
 }

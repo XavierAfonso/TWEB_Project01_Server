@@ -1,8 +1,8 @@
 // loads environment variables
 require('dotenv/config');
+const mongoose = require('mongoose');
 const express = require('express');
 const cors = require('cors');
-const mongoose = require('mongoose');
 const Github = require('./src/Github');
 const utils = require('./src/utils');
 const Database = require('./src/model');
@@ -17,6 +17,7 @@ mongoose.connect(`mongodb://tweb:${process.env.MONGO_PASSWORD}@cluster0-shard-00
   .catch((error) => {
     console.error(`MongoDB not reachable : ${error}`);
   });
+
 
 // Enable CORS for the client app
 app.use(cors());
@@ -66,7 +67,11 @@ app.get('/contributors/:username/:field', (req, res, next) => { // eslint-disabl
         .then(payload => res.send(payload))
         .catch(next);
     }
-  }).catch(next);
+  }).catch(() => {
+    utils.getContributorsFromGithub(username, field)
+      .then(payload => res.send(payload))
+      .catch(next);
+  });
 });
 
 // Provides JSON of all user's repos
