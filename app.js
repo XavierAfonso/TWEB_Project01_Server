@@ -107,12 +107,8 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
 app.listen(port, () => {
   // Clear the database
   // eslint-disable-next-line no-console
-  /*
-    Database.deleteMany({}).then((responses) => {
+  Database.deleteMany({}).then((responses) => {
     console.log(`DROP DATABASE : ${responses}`);
     console.log(`Server listening at http://localhost:${port}`);
   });
-  */
-
-  console.log(`Server listening at http://localhost:${port}`);
 });
